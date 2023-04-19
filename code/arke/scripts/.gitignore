@@ -1,0 +1,6 @@
+.db-*
+.*.json
+
+results/
+authority
+benchmark_client

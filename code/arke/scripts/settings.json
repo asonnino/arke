@@ -1,0 +1,24 @@
+{
+    "testbed": "arke-alberto",
+    "key": {
+        "name": "alberto",
+        "path": "/Users/alberto/.ssh/aws"
+    },
+    "port": 5000,
+    "repo": {
+        "name": "arke",
+        "url": "git@github.com:asonnino/arke.git",
+        "branch": "main",
+        "deploy_key": "/Users/alberto/.ssh/arke-github"
+    },
+    "instances": {
+        "type": "t3.medium",
+        "regions": [
+            "us-east-1",
+            "us-west-2",
+            "eu-central-1",
+            "ap-southeast-2",
+            "ap-northeast-1"
+        ]
+    }
+}

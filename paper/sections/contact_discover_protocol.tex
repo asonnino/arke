@@ -1,0 +1,137 @@
+\section{Contact Discovery Protocol}
+\label{sec:contact_discovery_protocol}
+
+The \sysname contact discovery protocol combines an ID-NIKE with an unlinkable handshake. 
+The ID-NIKE allows users to establish shared secrets amongst each other knowing only their identifiers. 
+Using this shared secret, they can run the unlinkable handshake to exchange arbitrary messages through an untrusted key-value store. 
+
+In this section we describe a private and trust-minimised variant of the Boneh-Waters ID-NIKE, an unlinkable handshake protocol and show how to combine both to build a contact discovery protocol.
+
+	\subsection{Threshold Oblivious ID-NIKE}
+	
+	The ID-NIKE as defined by Boneh and Waters \cite{boneh2013constrained} relies on a trusted third party to issue private keys to users.
+	We modify their protocol to meet our privacy desiderata by (i) separating the key issuance operation into a registration and an extraction phase and, (ii) distributing the master secret key.  
+	We call the resulting protocol a threshold and oblivious ID-NIKE.
+	
+	\paragraph{Oblivious Key Issuance} In the Boneh-Waters ID-NIKE, users must reveal their identifier to the trusted third party to obtain their secret key. 
+	We separate this trusted party into two entities: a registration authority and a key-issuing authority. 
+	We allow the registration authority to learn identifiers but not to compute their private keys. 
+	Its role is to attest that a user $A$ owns a given identifier $\id_A$.
+	On the other hand, the key-issuing entity is able to produce private keys but does not learn which identities they belong to.
+	
+	We replace the $\extract$ algorithm by four efficiently computable algorithms:
+	\begin{itemize}
+		\item $\register$
+		\item $\blind$
+		\item $\bextract$
+		\item $\unblind$
+	\end{itemize}
+	\nico{TODO: describe each of these algorithms}
+	
+	\paragraph{Distributed Key Issuance} In the oblivious setting described above, the key-issuing authority is still all-powerful in that it is able to extract the private key of any identifier. To minimise the trust placed in the key-issuing authority, we distribute it into $n$ entities that each hold a share of the master secret key. Using a $(t, n)$-threshold DKG, we ensure that no single party can break the IND-SK property of the ID-NIKE as long as at most $t$ parties are corrupt.
+	
+	Distributing the key-issuing entity is enforced by replacing the $\setup_E$ algorithm by a DKG. The extraction algorithm is the same as $\bextract$ but is renamed to $\bpextract$ to emphasize the fact that it outputs blinded \emph{partial} secret keys. Finally we introduce the $\combine$ algorithm to reconstruct a secret key from a set of $t+1$ key shares.
+	
+%	We introduce an oblivious variant of the above ID-NIKE. 
+%	An oblivious ID-NIKE allows to separate user key issuance into two parts: firstly a registration phase where users claim identities and then a blind key extraction phase.
+%	Each phase depends on its own master secret key, denoted $\msk_R$ (registration) and $\msk_{E}$ (extraction) respectively.
+%	The party performing registration learns the registered identity but is unable to extract its keys; on the other hand, the party performing the blind extraction can compute keys but learns nothing about the identity (other than the fact that it was previously registered).
+%	
+%	We then show that our oblivious ID-NIKE is rekeyable with respect to the key extraction master secret $\msk_E$ and is IND-SK secure.
+%	We therefore instantiate an IND-SK secure \emph{threshold and oblivious} ID-NIKE using a key-expressible DKG.
+%	The full protocol is described below:
+
+	
+	\begin{definition}[Threshold and Oblivious ID-NIKE]
+		\label{def:tn_obl_idnike}
+		Let $\Pi_\ID$ be a ZKPoK for the relation $\relation_\ID$.
+		We define the $(t, n)$-threshold variant of the Boneh-Waters ID-NIKE as eight efficiently computable algorithms $\setup_E$, $\setup_R$, $\register$, $\blind$, $\bpextract$, $\unblind$, $\combine$ and $\sharedkey$ as follows:
+		\begin{itemize}
+			% Setup Extraction
+			\item $\setup_E(\lambda, t, n)$: Participants $P_1, \dots , P_n$ execute a key-expressible DKG to compute Shamir secret shares $\msk_{E,1}, \dots , \msk_{E,n}$ of an (unknown) master secret key $\msk_E$.
+				They jointly output a $\mathsf{transcript}$ and master public key $\mpk_E = (g_1^{\msk_E}, g_2^{\msk_E})$. Output $\msk_{E,i}$ to $P_i$ and $\pp \leftarrow (\mathsf{transcript}, \mpk_E)$.
+			
+			% Setup Registration
+			\item $\setup_R(\lambda, \pp)$: choose a random registration secret key $\msk_R \pick \ZZ_q$ and compute the registration public key $\mpk_R = (g_1^{\msk_R}, g_2^{\msk_R})$. Output $\msk_R$ and $\pp \leftarrow \pp || \mpk_R$.
+			
+			% Register
+			\item $\register(\msk_R, \id)$: compute $t_L = H_1(\id)^{\msk_R}$ and $t_R = H_2(\id)^{\msk_R}$. Output the registration token $t_\id \leftarrow (t_L, t_R)$.
+	
+			% Blind
+			\item $\blind(\pp, \id, t_\id)$:
+			choose a random blinding factor $\alpha \pick \ZZ_q$.
+			Compute 	
+			\begin{equation}
+				\begin{aligned}
+					\ID &\leftarrow \left(H_1(\id)^\alpha, H_2(\id)^\alpha \right) \\
+					\pi_\ID &\leftarrow \Pi_\ID.\prove(\pp_\zk, \ID, (\id, \alpha)) \\
+					\widehat{t_\id} &\leftarrow {t_\id}^\alpha 
+				\end{aligned} 
+			\end{equation}
+			Output a blinded identifier $\widehat{\id} \leftarrow (\ID, \pi_\ID)$, blinded registration token $\widehat{t_\id}$ and the blinding factor $\alpha$.
+			
+			% Blind Partial Extract
+			\item $\bpextract(\msk_{E,i}, \pp, \widehat\id, \widehat{t_\id})$: 
+				Parse $\widehat\id$ as $(\ID, \pi_\ID)$, and $\widehat{t_\id}$ as $(\widehat{t_L}, \widehat{t_R})$.
+				Parse $\ID$ as $(\ID_L, \ID_R)$.
+				Check that the following equations hold:
+				\begin{equation}
+						\begin{aligned}
+							\pairing{\widehat{t_L}}{g_2} &\stackrel{?}{=} \pairing{\ID_L}{{g_2}^\msk} \\
+							\pairing{g_1}{\widehat{t_R}} &\stackrel{?}{=} \pairing{{g_1}^\msk}{\ID_R} \\
+							\Pi_\ID.\verify(\pp_\zk, \ID, \pi_\ID) &\stackrel{?}{=} 1 \quad \text{(accept)}
+						\end{aligned}
+				\end{equation}
+				%
+				If all equations verify successfully, compute and return a blinded partial key $\widehat {sk_{\id, i}} \leftarrow \ID^{\msk_E}$, else return $\perp$.
+			
+			% Unblind
+			\item $\unblind(\widehat {sk_{\id, i}}, \alpha)$: compute and output the partial key ${sk_{\id, i}} \leftarrow \widehat {sk_{\id, i}}^{\frac{1}{\alpha}}$.
+			
+			% Combine
+			\item $\combine(\left\{sk_{\id, i} \right\}_{i =1}^{t+1})$: using a set of $t+1$ valid partial keys, compute $d_L$ and $d_R$ using Lagrange interpolation ``in the exponent''.
+			 	Let $L_i$ denote the Lagrange coefficient for the $i$-th share in the given set, $d_L = \prod_{i = 1}^{t+1} {d_{L, i}}^{L_i}$ and $d_R = \prod_{i = 1}^{t+1} {d_{R, i}}^{L_i}$. 
+			 	\footnote{As required, $d_L = \prod_{i = 1}^{t+1} {d_{L, i}}^{L_i} = H_1(\id)^{\sum_{i = 1}^{t+1}\msk_{E,i}L_i} = H_1(\id)^{\msk_E}$}.
+			 	Output the user key $sk_\id = (d_L, d_R)$.
+			
+			% Shared Key
+			\item $\sharedkey(sk_\id, \id')$: We assume that identifiers are lexicographically ordered. Output $k_{\id, \id'} = e(d_L, H_2(\id'))$ if $\id < \id'$. Output the shared key $k_{\id, \id'} = e(H_1(\id'), d_R)$ if $\id > \id'$.
+		\end{itemize}
+		It holds that $\sharedkey(\pp, sk_\id, \id') = \sharedkey(\pp, sk_\id', \id)$ for all $\id \neq \id'$ and $\pp$ generated by $\setup_E$.
+	\end{definition}
+	
+	\paragraph{IND-SK Security} We show that the threshold and oblivious ID-NIKE described here is IND-SK secure under the DBDH assumption in the random oracle model if $\Pi_\ID$ is simulation extractable.
+	
+	\begin{theorem}
+	\label{theorem:threshold_oblivious_idnike_security}
+		The threshold and oblivious ID-NIKE of \Cref{def:tn_obl_idnike} is IND-SK under the DBDH assumption when modelling the functions $H_1$, $H_2$ as random oracles and if $\Pi_\ID$ is simulation extractable.
+	\end{theorem}
+	
+	\noindent \textit{Proof intuition.} We first show that the security of the oblivious variant of the ID-NIKE reduces to that of the Boneh-Waters ID-NIKE assuming that $\Pi_\ID$ is simulation extractable. Indeed if an adversary $\adv$ can break the IND-SK security of the oblivious ID-NIKE, then we can build an adversary $\bdv$ that breaks the Boneh-Waters ID-NIKE. Informally, $\bdv$ takes on the role of the registration authority and can emulate the key-issuing authority. It does so by using the extractor for $\Pi_\ID$ to effectively ``remove the blinding'' on $\adv$'s requests to its $\bextract$ oracle. Since $\Pi_\ID$ is simulation extractable, the extractor will succeed with overwhelming probability.
+		
+	The second step it to show that the oblivious ID-NIKE is rekeyable with respect to the master secret key $\msk_E$. We do so using similar techniques as those used in \cite{gurkan2021aggregatable} for BLS signatures. 
+	
+	Finally we show that key-expressible DKGs are security preserving for rekeyable ID-NIKEs, allowing us to transform the oblivious ID-NIKE into a threshold and oblivious ID-NIKE under the same security assumptions. Combining the above with the already proven security of the Boneh-Waters ID-NIKE proves our theorem. $\square$
+	
+	\subsection{Unlinkable Handshake}
+	
+	\paragraph{Unlinkability}
+	
+	\paragraph{Bounded Storage}
+	
+	\subsection{The \sysname Protocol}
+	
+	\paragraph{Setup Phase}
+	
+	\paragraph{Discovery Phase}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	

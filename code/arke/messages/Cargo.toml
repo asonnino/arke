@@ -1,0 +1,27 @@
+[package]
+name = "messages"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ark-bls12-377 = "0.3.0"
+ark-bw6-761 = "0.3.0"
+ark-ec = "0.3.0"
+ark-ff = "0.3.0"
+bincode = "1.3.3"
+eyre = "0.6.8"
+fastcrypto = "0.1.4"
+rand = "0.8.5"
+serde = { version = "1.0.133", features = ["derive"] }
+signature = "1.6.4"
+thiserror = "1.0.30"
+proof-essentials = { git = "https://github.com/geometryresearch/proof-toolbox.git", rev = "d1402a7" }
+serde_bytes = "0.11.9"
+ark-serialize = "0.3.0"
+
+config = { path = "../config" }
+arke_core = { path = "../crypto/arke_core" }
+
+[dev-dependencies]
+test-util = { path = "../test-util" }
+anyhow = "1.0.69"

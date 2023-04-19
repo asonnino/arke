@@ -1,0 +1,18 @@
+[package]
+name = "secret_sharing"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ark-ff = "0.3.0"
+ark-poly = "0.3.0"
+ark-serialize = "0.3.0"
+ark-std = "0.3.0"
+thiserror = "1.0.37"
+rand = "0.8.5"
+
+
+[dev-dependencies]
+ark-bn254 = "0.3.0"

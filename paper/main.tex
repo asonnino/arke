@@ -1,0 +1,59 @@
+\documentclass[manuscript,sigconf,nonacm,screen,review]{acmart}
+
+%% \BibTeX command to typeset BibTeX logo in the docs
+\AtBeginDocument{
+  \providecommand\BibTeX{{
+    \normalfont B\kern-0.5em{\scshape i\kern-0.25em b}\kern-0.8em\TeX}}}
+
+%% Uncomment the following line to enable camera-ready mode
+% \def\publish{}
+
+%% Input the macros
+\input{macros}
+
+\begin{document}
+
+%% Define the title, authors, and abstract
+\title{\sysname: Scalable Privacy-Preserving Contact Discovery}
+
+\ifdefined\publish
+  \author{The Team}
+  \email{hello@example.com}
+
+  \renewcommand{\shortauthors}{Trovato and Tobin, et al.}
+\else
+  \author{}
+\fi
+
+\input{abstract}
+\keywords{}
+
+\maketitle
+
+%% Paper's outline
+\input{sections/introduction}
+\input{sections/overview}
+\input{sections/background}
+\input{sections/contact_discover_protocol}
+\input{sections/store}
+\input{sections/security}
+\input{sections/implementation_and_eval}
+\input{sections/relatedwork}
+\input{sections/conclusion}
+
+\ifdefined\publish
+  \input{ack}
+\fi
+
+%% Bibliography
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+
+%% Appendices
+\appendix
+\input{sections/setup-details}
+\input{sections/proofs}
+\input{sections/instantiations}
+
+\end{document}
+\endinput

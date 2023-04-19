@@ -1,0 +1,34 @@
+[package]
+name = "arke_core"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+aes-gcm = "0.10.1"
+ark-bls12-377 = "0.3.0"
+ark-bw6-761 = "0.3.0"
+ark-crypto-primitives = "0.3.0"
+ark-ec = "0.3.0"
+ark-ed25519 = "0.4.0"
+ark-ff = "0.3.0"
+ark-groth16 = "0.3.0"
+ark-marlin = "0.3.0"
+ark-r1cs-std = "0.3.1"
+ark-relations = "0.3.0"
+ark-serialize = "0.3.0"
+ark-sponge = "0.3.0"
+ark-std = "0.3.0"
+blake2 = "0.9"
+hash_functions = { path = "../hash_functions" }
+proof-essentials = { git = "https://github.com/geometryresearch/proof-toolbox.git", rev = "d1402a7" }
+rand = "0.8.5"
+secret_sharing = { path = "../secret_sharing" }
+serde = { version = "1.0.133", features = ["derive"] }
+thiserror = "1.0.37"
+serde_bytes = "0.11.9"
+
+[dev-dependencies]
+byte-unit = "4.0.14"
+

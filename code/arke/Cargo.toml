@@ -1,0 +1,14 @@
+[workspace]
+
+members = [
+    "crypto/arke_core",
+    "crypto/hash_functions",
+    "crypto/secret_sharing",
+    "config",
+    "messages",
+    "network",
+    "authority",
+    "test-util",
+    "bench",
+    "orchestrator"
+]

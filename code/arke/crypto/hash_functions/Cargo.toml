@@ -1,0 +1,30 @@
+[package]
+name = "hash_functions"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ark-bls12-377 = { version = "0.3.0", features = [ "r1cs" ] }
+ark-bw6-761 = "0.3.0"
+ark-crypto-primitives = "0.3.0"
+ark-ec = "0.3.0"
+ark-ff = "0.3.0"
+ark-r1cs-std = "0.3.1"
+ark-relations = "0.3.0"
+ark-serialize = "0.3.0"
+ark-sponge = "0.3.0"
+ark-std = "0.3.0"
+blake2 = { version = "0.9", default-features = false }
+blake2s_simd = "1.0.0"
+byteorder = "1.4.3"
+digest = "0.9"
+rand = "0.8.5"
+thiserror = "1.0.37"
+
+[dev-dependencies]
+ark-ed-on-bls12-381 = { version = "^0.3.0", default-features = false, features = [ "r1cs" ] }
+hex = "0.4.3"
+rand_core = "0.6.4"
+rand_xorshift = "0.3.0"
