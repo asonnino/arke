@@ -176,3 +176,32 @@ impl MessageHandler for CredentialsIssuerHandler {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod test {
+    use messages::{ClientToAuthorityMessage, WriteTransaction};
+    use rand::{rngs::StdRng, SeedableRng};
+
+    #[test]
+    fn serialize_authority_message() {
+        let epoch = 1;
+        let version = 0;
+        let size = 32;
+
+        let mut csprng = StdRng::from_entropy();
+        let tx = WriteTransaction::rand::<StdRng>(Some(version), Some(epoch), size, &mut csprng)
+            .unwrap();
+        assert!(tx.verify().is_ok());
+
+        // Serialize the transaction.
+        let message = ClientToAuthorityMessage::WriteTransaction(tx);
+        let serialized = bincode::serialize(&message).unwrap();
+        let bytes = bytes::Bytes::from(serialized);
+
+        // Deserialize the transaction.
+        match bincode::deserialize(&bytes).unwrap() {
+            ClientToAuthorityMessage::WriteTransaction(tx) => assert!(tx.verify().is_ok()),
+            _ => panic!("Unexpected protocol message"),
+        }
+    }
+}

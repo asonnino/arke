@@ -296,3 +296,16 @@ impl<'de> serde::Deserialize<'de> for NIZKProof {
         Ok(Self(proof))
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::StoreKey;
+
+    #[test]
+    fn serialize_store_key() {
+        let key = StoreKey::default();
+        let s = bincode::serialize(&key).unwrap();
+        let d = bincode::deserialize(&s).unwrap();
+        assert_eq!(key, d);
+    }
+}

@@ -32,12 +32,12 @@ impl WriteTransactionGenerator {
 
         // Generate new transactions in the background.
         let handler = tokio::spawn(async move {
-            let mut csprng = StdRng::seed_from_u64(0);
+            let mut csprng = StdRng::from_entropy();
+            let threshold = (10 * Self::CHANNEL_CAPACITY) / 100;
 
             let mut i = 0;
             loop {
-                i += 1;
-                if i % 10_000 == 0 {
+                if i % threshold == 0 {
                     tracing::debug!("Generated {i} tx");
                 }
 
@@ -46,14 +46,13 @@ impl WriteTransactionGenerator {
                 let tx =
                     WriteTransaction::rand::<StdRng>(Some(version), Some(epoch), size, &mut csprng)
                         .unwrap();
-                assert!(tx.verify().is_ok());
                 let id = tx.id.clone();
 
                 let message = ClientToAuthorityMessage::WriteTransaction(tx);
                 let serialized = bincode::serialize(&message).unwrap();
                 let bytes = Bytes::from(serialized);
 
-                if tx_transaction.capacity() == (10 * Self::CHANNEL_CAPACITY) / 100 {
+                if tx_transaction.capacity() == threshold {
                     cloned_notify.notify_one();
                 }
 
@@ -63,6 +62,7 @@ impl WriteTransactionGenerator {
                     .await
                     .expect("Failed to send tx");
 
+                i += 1;
                 tokio::task::yield_now().await;
             }
         });

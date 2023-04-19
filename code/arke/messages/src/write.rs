@@ -198,8 +198,29 @@ mod test {
         let mut rng = thread_rng();
         let size = 8;
 
-        let random_transaction =
-            WriteTransaction::rand::<ThreadRng>(Some(1), Some(1), size, &mut rng).unwrap();
-        assert!(random_transaction.verify().is_ok())
+        let tx = WriteTransaction::rand::<ThreadRng>(Some(1), Some(1), size, &mut rng).unwrap();
+        assert!(tx.verify().is_ok());
+    }
+
+    #[test]
+    fn serialize_transaction() {
+        let transaction = test_util::test_write_transaction();
+        assert!(transaction.verify().is_ok());
+
+        let s = bincode::serialize(&transaction).unwrap();
+        let d: WriteTransaction = bincode::deserialize(&s).unwrap();
+        assert!(d.verify().is_ok())
+    }
+
+    #[test]
+    fn serialize_random_transaction() {
+        let mut rng = thread_rng();
+        let size = 8;
+        let tx = WriteTransaction::rand::<ThreadRng>(Some(1), Some(1), size, &mut rng).unwrap();
+        assert!(tx.verify().is_ok());
+
+        let s = bincode::serialize(&tx).unwrap();
+        let d: WriteTransaction = bincode::deserialize(&s).unwrap();
+        assert!(d.verify().is_ok())
     }
 }
