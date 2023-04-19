@@ -12,6 +12,9 @@ use tokio::{
     task::JoinHandle,
 };
 
+/// Epoch number of all transactions in the benchmark.
+pub const BENCHMARK_EPOCH: u64 = 1;
+
 /// Make dumb (but valid) write transactions.
 pub struct WriteTransactionGenerator {
     notify: Arc<Notify>,
@@ -29,13 +32,21 @@ impl WriteTransactionGenerator {
 
         // Generate new transactions in the background.
         let handler = tokio::spawn(async move {
-            let mut csprng = StdRng::from_entropy();
+            let mut csprng = StdRng::seed_from_u64(0);
+
+            let mut i = 0;
             loop {
-                let version = 1;
-                let epoch = 1;
+                i += 1;
+                if i % 10_000 == 0 {
+                    tracing::debug!("Generated {i} tx");
+                }
+
+                let version = 0;
+                let epoch = BENCHMARK_EPOCH;
                 let tx =
                     WriteTransaction::rand::<StdRng>(Some(version), Some(epoch), size, &mut csprng)
                         .unwrap();
+                assert!(tx.verify().is_ok());
                 let id = tx.id.clone();
 
                 let message = ClientToAuthorityMessage::WriteTransaction(tx);

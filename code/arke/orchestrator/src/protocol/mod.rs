@@ -40,7 +40,6 @@ pub trait ProtocolCommands<T: BenchmarkType> {
     fn client_command<I>(
         &self,
         clients: I,
-        nodes: I,
         parameters: &BenchmarkParameters<T>,
     ) -> Vec<(Instance, String)>
     where

@@ -28,20 +28,14 @@ pub struct AuthorityState {
     /// The persistent storage.
     storage: Storage,
     /// The authority's metrics.
-    metrics: AuthorityMetrics,
+    metrics: Option<AuthorityMetrics>,
     /// A lock table preventing race conditions on storage's keys.
     locks: Guard<Key>,
 }
 
 /// Process client messages.
 impl AuthorityState {
-    pub fn new(
-        keypair: KeyPair,
-        committee: Committee,
-        epoch: Epoch,
-        storage: Storage,
-        metrics: AuthorityMetrics,
-    ) -> Self {
+    pub fn new(keypair: KeyPair, committee: Committee, epoch: Epoch, storage: Storage) -> Self {
         let name = keypair.public().clone();
         Self {
             name,
@@ -49,9 +43,14 @@ impl AuthorityState {
             committee,
             epoch,
             storage,
-            metrics,
+            metrics: None,
             locks: Default::default(),
         }
+    }
+
+    pub fn with_metrics(mut self, metrics: AuthorityMetrics) -> Self {
+        self.metrics = Some(metrics);
+        self
     }
 
     /// Handle incoming write transactions.
@@ -119,7 +118,7 @@ impl AuthorityState {
             }
         };
 
-        self.metrics.transactions.inc();
+        self.metrics.as_ref().map(|x| x.transactions.inc());
         Ok(vote)
     }
 
@@ -168,7 +167,7 @@ impl AuthorityState {
         self.persist(&key, &stored_value);
 
         tracing::debug!("Persisted certificate {id}");
-        self.metrics.certificates.inc();
+        self.metrics.as_ref().map(|x| x.certificates.inc());
         Ok(id)
     }
 }

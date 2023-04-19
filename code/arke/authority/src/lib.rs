@@ -48,13 +48,9 @@ pub fn spawn_authority(
     let metrics = AuthorityMetrics::new(&registry);
 
     // Make the authority's state.
-    let state = Arc::new(AuthorityState::new(
-        keypair,
-        committee.clone(),
-        epoch,
-        storage,
-        metrics,
-    ));
+    let state = Arc::new(
+        AuthorityState::new(keypair, committee.clone(), epoch, storage).with_metrics(metrics),
+    );
 
     // Spawn a network receiver.
     let mut address = committee

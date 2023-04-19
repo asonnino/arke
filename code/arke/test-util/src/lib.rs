@@ -1,12 +1,7 @@
-use authority::{
-    metrics::{start_prometheus_server, AuthorityMetrics},
-    state::AuthorityState,
-    storage::Storage,
-};
+use authority::{state::AuthorityState, storage::Storage};
 use config::{Authority, Committee};
 use fastcrypto::{generate_keypair, traits::KeyPair as _};
 use messages::{Certificate, Epoch, KeyPair, Version, Vote, WriteTransaction};
-use prometheus::default_registry;
 use rand::{rngs::StdRng, SeedableRng};
 use tempdir::TempDir;
 
@@ -91,15 +86,10 @@ pub fn test_storage() -> Storage {
 }
 
 pub fn test_authority_state() -> AuthorityState {
-    let registry = default_registry();
-    let _handle = start_prometheus_server("0.0.0.0:0".parse().unwrap(), &registry);
-    let metrics = AuthorityMetrics::new(&registry);
-
     AuthorityState::new(
         test_keys().pop().unwrap(),
         test_committee(),
         INITIAL_EPOCH,
         test_storage(),
-        metrics,
     )
 }

@@ -199,7 +199,7 @@ mod test {
         let size = 8;
 
         let random_transaction =
-            WriteTransaction::rand::<ThreadRng>(None, None, size, &mut rng).unwrap();
+            WriteTransaction::rand::<ThreadRng>(Some(1), Some(1), size, &mut rng).unwrap();
         assert!(random_transaction.verify().is_ok())
     }
 }

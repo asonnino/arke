@@ -120,7 +120,7 @@ impl ProtocolCommands<ArkeBenchmarkType> for ArkeProtocol {
         let instances: Vec<_> = instances.cloned().collect();
         let committee = instances.len();
         let shards = parameters.benchmark_type.number_of_shards();
-        let addresses = self.node_addresses(&instances, shards).join(" ");
+        let addresses = self.node_addresses(&instances, parameters).join(" ");
 
         let genesis = [
             "cargo run --release --bin authority --",
@@ -140,41 +140,55 @@ impl ProtocolCommands<ArkeBenchmarkType> for ArkeProtocol {
     where
         I: IntoIterator<Item = Instance>,
     {
+        if matches!(
+            parameters.benchmark_type,
+            ArkeBenchmarkType::StandaloneShards { .. }
+        ) {
+            unimplemented!("Unsupported standalone mode");
+        }
+
         let shards = parameters.benchmark_type.number_of_shards();
         let committee = config::committee_filename();
         let storage = Self::DB_NAME;
-        let epoch = 1;
+        let epoch = 1; // TODO: Get the epoch from the benchmark client.
 
         instances
             .into_iter()
             .enumerate()
-            .map(|(i, instance)| {
+            .map(|(i,instance)| {
                 let keys = config::private_config_filename(i);
+                (0..shards).map(|s|{
+                    let port = Self::NODE_METRICS_PORT + s as u16;
+                    let run = [
+                        "cargo run --release --bin authority --",
+                        "-vvv",
+                        "run",
+                        &format!("--keys {keys} --shard {s} --committee {committee} --storage {storage} --epoch {epoch} --metrics-port {port}"),
+                    ]
+                    .join(" ");
+                    let command = ["source $HOME/.cargo/env", &run].join(" && ");
 
-                let run = [
-                    "cargo run --release --bin authority --",
-                    "run",
-                    &format!("--keys {keys} --shards {shards} --committee {committee} --storage {storage} --epoch {epoch}"),
-                ]
-                .join(" ");
-                let command = ["source $HOME/.cargo/env", &run].join(" && ");
-
-                (instance, command)
+                    (instance.clone(), command)
+                })
+                .collect::<Vec<_>>()
             })
+            .flatten()
             .collect()
     }
 
     fn client_command<I>(
         &self,
         clients_instances: I,
-        nodes_instances: I,
         parameters: &BenchmarkParameters<ArkeBenchmarkType>,
     ) -> Vec<(Instance, String)>
     where
         I: IntoIterator<Item = Instance>,
     {
         let clients: Vec<_> = clients_instances.into_iter().collect();
-        let nodes: Vec<_> = nodes_instances.into_iter().collect();
+        let shards = parameters.benchmark_type.number_of_shards();
+        if clients.len() < shards {
+            panic!("There should be at least one client per shard");
+        }
 
         let c = config::committee_filename();
         let r = parameters.load / clients.len();
@@ -182,13 +196,11 @@ impl ProtocolCommands<ArkeBenchmarkType> for ArkeProtocol {
         let f = parameters.faults.number_of_faults();
         let p = Self::CLIENT_METRICS_PORT;
 
-        let shards = parameters.benchmark_type.number_of_shards();
-        let targets = self.node_addresses(&nodes, shards);
-        targets.into_iter().zip(clients.into_iter().cycle()).map(|(t, client)|{
+        (0..shards).zip(clients.into_iter()).map(|(i, client)|{
             let run = [
                 "cargo run --release --features benchmark --bin benchmark_client --",
-                "-vv",
-                &format!("--target-shard {t} --committee {c} --rate {r} --size {s} --faults {f} --metrics-port {p}")
+                "-vvv",
+                &format!("--target-shard {i} --committee {c} --rate {r} --size {s} --faults {f} --metrics-port {p}")
             ]
             .join(" ");
             let command = ["source $HOME/.cargo/env", &run].join(" && ");
@@ -200,8 +212,8 @@ impl ProtocolCommands<ArkeBenchmarkType> for ArkeProtocol {
 }
 
 impl ProtocolMetrics for ArkeProtocol {
-    const NODE_METRICS_PORT: u16 = 9090;
-    const CLIENT_METRICS_PORT: u16 = 8080;
+    const NODE_METRICS_PORT: u16 = 9190;
+    const CLIENT_METRICS_PORT: u16 = 8180;
 
     const BENCHMARK_DURATION: &'static str = "benchmark_duration";
     const TOTAL_TRANSACTIONS: &'static str = "finalized_latency_s_count";
@@ -221,10 +233,19 @@ impl ArkeProtocol {
         }
     }
 
-    fn node_addresses(&self, instances: &[Instance], shards: usize) -> Vec<String> {
-        // TODO: Does not work for non-collocated authorities' shards. Get BenchmarkParameters as
-        // input and compute the addresses according to the BenchmarkType.
+    fn node_addresses(
+        &self,
+        instances: &[Instance],
+        parameters: &BenchmarkParameters<ArkeBenchmarkType>,
+    ) -> Vec<String> {
+        if matches!(
+            parameters.benchmark_type,
+            ArkeBenchmarkType::StandaloneShards { .. }
+        ) {
+            unimplemented!("Unsupported standalone mode");
+        }
 
+        let shards = parameters.benchmark_type.number_of_shards();
         instances
             .iter()
             .map(|instance| {

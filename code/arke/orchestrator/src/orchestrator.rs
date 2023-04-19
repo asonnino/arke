@@ -359,12 +359,12 @@ impl<P: ProtocolCommands<T> + ProtocolMetrics, T: BenchmarkType> Orchestrator<P,
         display::action("Setting up load generators");
 
         // Select the instances to run.
-        let (clients, nodes) = self.select_instances(parameters)?;
+        let (clients, _) = self.select_instances(parameters)?;
 
         // Deploy the load generators.
         let targets = self
             .protocol_commands
-            .client_command(clients.clone(), nodes, parameters);
+            .client_command(clients.clone(), parameters);
 
         let context = CommandContext::new()
             .run_background("client".into())

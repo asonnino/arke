@@ -147,7 +147,7 @@ impl BenchmarkClient {
     ) -> Self {
         let registry = default_registry();
         let _handle = start_prometheus_server(
-            format!("127.0.0.1:{}", metrics_port).parse().unwrap(),
+            format!("0.0.0.0:{}", metrics_port).parse().unwrap(),
             &registry,
         );
         let metrics = ClientMetrics::new(&registry);
