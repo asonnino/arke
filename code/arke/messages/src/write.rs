@@ -122,7 +122,7 @@ impl WriteTransaction {
         // Create a random exponent and StoreKey
         let exponent = TagExponent::rand(rng);
         let generator = ark_bw6_761::G1Projective::prime_subgroup_generator();
-        let write_tag = Key::from(generator.mul(exponent.into_repr()));
+        let write_tag = Key::from(generator.mul(exponent.into_repr()).into_affine());
 
         // Create some random bytes to be written
         let value = vec![1u8; size];

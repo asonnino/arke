@@ -15,7 +15,7 @@ rand = "0.8.5"
 serde = { version = "1.0.133", features = ["derive"] }
 signature = "1.6.4"
 thiserror = "1.0.30"
-proof-essentials = { git = "https://github.com/geometryresearch/proof-toolbox.git", rev = "d1402a7" }
+proof-essentials = { git = "https://github.com/geometryresearch/proof-toolbox.git", rev = "502a6447a06940fc903383a2bb8600a4510871fa" }
 serde_bytes = "0.11.9"
 ark-serialize = "0.3.0"
 

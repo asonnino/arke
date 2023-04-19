@@ -22,7 +22,7 @@ ark-sponge = "0.3.0"
 ark-std = "0.3.0"
 blake2 = "0.9"
 hash_functions = { path = "../hash_functions" }
-proof-essentials = { git = "https://github.com/geometryresearch/proof-toolbox.git", rev = "d1402a7" }
+proof-essentials = { git = "https://github.com/geometryresearch/proof-toolbox.git", rev = "502a6447a06940fc903383a2bb8600a4510871fa" }
 rand = "0.8.5"
 secret_sharing = { path = "../secret_sharing" }
 serde = { version = "1.0.133", features = ["derive"] }

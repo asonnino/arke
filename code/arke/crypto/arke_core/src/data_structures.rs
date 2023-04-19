@@ -201,16 +201,16 @@ pub type SymmetricKey = Vec<u8>;
 
 #[derive(Clone, PartialEq, Eq, Debug, CanonicalSerialize, CanonicalDeserialize)]
 pub struct StoreKey {
-    pub point: ark_bw6_761::G1Projective,
+    pub point: ark_bw6_761::G1Affine,
     buf: Vec<u8>,
 }
 
-impl From<ark_bw6_761::G1Projective> for StoreKey {
-    fn from(point: ark_bw6_761::G1Projective) -> Self {
+impl From<ark_bw6_761::G1Affine> for StoreKey {
+    fn from(point: ark_bw6_761::G1Affine) -> Self {
         let mut buf = Vec::new();
         point
             .serialize_unchecked(&mut buf)
-            .expect("Failed to serialize G1Projective");
+            .expect("Failed to serialize G1Affine");
         Self { point, buf }
     }
 }
@@ -236,8 +236,8 @@ impl<'de> serde::Deserialize<'de> for StoreKey {
         D: serde::Deserializer<'de>,
     {
         let buf: Vec<u8> = serde_bytes::deserialize(deserializer)?;
-        let point = ark_bw6_761::G1Projective::deserialize_unchecked(buf.as_slice())
-            .map_err(D::Error::custom)?;
+        let point = ark_bw6_761::G1Affine::deserialize_unchecked(buf.as_slice())
+            .map_err(D::Error::custom)?.into();
         Ok(Self { buf, point })
     }
 }
@@ -256,12 +256,12 @@ impl AsRef<[u8]> for StoreKey {
 
 impl Default for StoreKey {
     fn default() -> Self {
-        let point = ark_bw6_761::G1Projective::default();
+        let point = ark_bw6_761::G1Affine::default();
         let mut buf = Vec::new();
         point
             .serialize_unchecked(&mut buf)
-            .expect("Failed to serialize G1Projective");
-        Self { point, buf }
+            .expect("Failed to serialize G1Affine");
+        Self { point: point.into(), buf }
     }
 }
 

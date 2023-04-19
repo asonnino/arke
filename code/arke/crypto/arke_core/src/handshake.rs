@@ -78,7 +78,7 @@ impl UnlinkableHandshake<Bls12_377, Blake2Xs, PoseidonSponge<ark_bls12_377::Fq>,
 
         let generator = ark_bw6_761::G1Projective::prime_subgroup_generator();
 
-        let write_tag = generator.mul(exponent.into_repr());
+        let write_tag = generator.mul(exponent.into_repr()).into_affine();
 
         Ok((write_tag.into(), exponent))
     }
@@ -102,7 +102,7 @@ impl UnlinkableHandshake<Bls12_377, Blake2Xs, PoseidonSponge<ark_bls12_377::Fq>,
 
         let generator = ark_bw6_761::G1Projective::prime_subgroup_generator();
 
-        let read_tag = generator.mul(exponent.into_repr());
+        let read_tag = generator.mul(exponent.into_repr()).into_affine();
 
         Ok(read_tag.into())
     }
@@ -121,7 +121,7 @@ impl UnlinkableHandshake<Bls12_377, Blake2Xs, PoseidonSponge<ark_bls12_377::Fq>,
         let proof = DLOG::prove(
             rng,
             &generator.into_affine(),
-            &write_tag.point.into_affine(),
+            &write_tag.point,
             exponent,
             &mut fs_rng,
         )?;
@@ -141,7 +141,7 @@ impl UnlinkableHandshake<Bls12_377, Blake2Xs, PoseidonSponge<ark_bls12_377::Fq>,
 
         DLOG::verify(
             &generator.into_affine(),
-            &write_tag.point.into_affine(),
+            &write_tag.point,
             &proof.0,
             &mut fs_rng,
         )?;
@@ -218,6 +218,7 @@ impl UnlinkableHandshake<Bls12_377, Blake2Xs, PoseidonSponge<ark_bls12_377::Fq>,
 #[cfg(test)]
 mod test {
     use ark_ff::UniformRand;
+    use ark_ec::ProjectiveCurve;
     use rand::{distributions::Alphanumeric, thread_rng, Rng};
 
     use crate::{random_id, UnlinkableHandshake, UserID, SIZE_SYMMETRIC_KEYS_IN_BYTES};
@@ -333,7 +334,7 @@ mod test {
         )
         .unwrap();
 
-        let another_write_tag = ark_bw6_761::G1Projective::rand(rng);
+        let another_write_tag = ark_bw6_761::G1Projective::rand(rng).into_affine();
 
         assert!(UnlinkableHandshake::verify_write_location(
             &another_write_tag.into(),
@@ -406,7 +407,7 @@ mod test {
             UnlinkableHandshake::encrypt_message(&symmetric_key, &alice_write_tag, message, rng)
                 .unwrap();
 
-        let another_location = ark_bw6_761::G1Projective::rand(rng);
+        let another_location = ark_bw6_761::G1Projective::rand(rng).into_affine();
 
         let attempted_recovered_message = UnlinkableHandshake::decrypt_message(
             &symmetric_key,
