@@ -1,8 +1,11 @@
 use clap::Parser;
 use config::{Committee, Import, ShardId};
 use eyre::{ensure, eyre, Result, WrapErr};
-use futures::stream::{futures_unordered::FuturesUnordered, StreamExt};
-use messages::AuthorityToClientMessage;
+use futures::{
+    future::join_all,
+    stream::{futures_unordered::FuturesUnordered, StreamExt},
+};
+use messages::{AuthorityError, AuthorityToClientMessage};
 use metrics::{start_prometheus_server, ClientMetrics};
 use prometheus::default_registry;
 use std::{collections::HashMap, net::SocketAddr};
@@ -135,6 +138,8 @@ impl BenchmarkClient {
     const BURST_DURATION: Duration = Duration::from_millis(1_000 / Self::PRECISION);
     /// The number of connections per peer.
     const CONNECTIONS_PER_PEER: usize = 500;
+    /// The number of tx generators.
+    const TX_GENERATORS: usize = 5;
 
     /// Create a new benchmark client.
     pub fn new(
@@ -211,7 +216,10 @@ impl BenchmarkClient {
         // Initiate the generator of dumb messages.
         let correct_authorities = self.num_of_correct_authorities();
         let pre_compute = 300 * self.rate as usize / self.committee.shards();
-        let mut tx_generator = WriteTransactionGenerator::new(self.size, pre_compute);
+        let mut tx_generators: Vec<_> = (0..Self::TX_GENERATORS)
+            .map(|_| WriteTransactionGenerator::new(self.size, pre_compute))
+            .collect();
+
         let mut cert_aggregator =
             CertificateAggregator::new(self.committee.clone(), correct_authorities);
         let mut acks_aggregator = AckAggregator::new(self.committee.clone(), correct_authorities);
@@ -220,8 +228,8 @@ impl BenchmarkClient {
         let mut sending_times = HashMap::with_capacity(self.rate as usize * 100);
 
         // Give a head start to the transaction generator to produce a few transactions.
-        tracing::info!("Initializing generator");
-        tx_generator.initialize().await;
+        tracing::info!("Initializing generators");
+        join_all(tx_generators.iter().map(|x| x.initialize())).await;
 
         // Gather votes.
         let mut votes_handlers = FuturesUnordered::new();
@@ -242,8 +250,9 @@ impl BenchmarkClient {
                     let duration = now.duration_since(start);
                     self.metrics.benchmark_duration.inc_by(duration.as_secs());
 
-                    for _ in 1..=burst {
-                        let (id, bytes) = tx_generator.make_tx().await;
+                    for i in 1..=burst {
+                        let x = i as usize % Self::TX_GENERATORS;
+                        let (id, bytes) = tx_generators[x].make_tx().await;
 
                         self.metrics.submitted.inc();
                         tracing::info!("Sending sample transaction {id}");
@@ -267,7 +276,11 @@ impl BenchmarkClient {
                         AuthorityToClientMessage::Vote(result) => result,
                         x => return Err(eyre!("Unexpected protocol message: {x:?}"))
                     };
-                    let vote = result.context("Authority returned error")?;
+                    let vote = match result {
+                        Ok(x) => x,
+                        Err(AuthorityError::InvalidVersion{expected,..}) if expected > 1 => continue,
+                        e => e.context("Authority returned error")?
+                    };
                     tracing::debug!("Received {vote:?}");
                     if let Some((id, certificate)) = cert_aggregator.try_make_certificate(vote)
                     {
