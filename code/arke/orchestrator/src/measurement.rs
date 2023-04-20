@@ -412,4 +412,100 @@ mod test {
         assert_eq!(data.timestamp.as_secs(), 30);
         assert_eq!(data.squared_sum.as_secs(), 952);
     }
+
+    #[test]
+    fn prometheus_parse_complex() {
+        let report = r#"
+        # HELP benchmark_duration Duration of the benchmark
+        # TYPE benchmark_duration counter
+        benchmark_duration 30
+        # HELP certification_latency_s Total time in seconds to certify transactions
+        # TYPE certification_latency_s histogram
+        certification_latency_s_bucket{status="certified",le="0.1"} 9355
+        certification_latency_s_bucket{status="certified",le="0.25"} 9355
+        certification_latency_s_bucket{status="certified",le="0.5"} 9355
+        certification_latency_s_bucket{status="certified",le="0.75"} 9355
+        certification_latency_s_bucket{status="certified",le="1"} 9355
+        certification_latency_s_bucket{status="certified",le="1.25"} 9355
+        certification_latency_s_bucket{status="certified",le="1.5"} 9355
+        certification_latency_s_bucket{status="certified",le="1.75"} 9355
+        certification_latency_s_bucket{status="certified",le="2"} 9355
+        certification_latency_s_bucket{status="certified",le="2.5"} 9355
+        certification_latency_s_bucket{status="certified",le="5"} 9355
+        certification_latency_s_bucket{status="certified",le="10"} 9355
+        certification_latency_s_bucket{status="certified",le="+Inf"} 9355
+        certification_latency_s_sum{status="certified"} 615.7733552859991
+        certification_latency_s_count{status="certified"} 9355
+        # HELP certification_latency_squared_s Square of total time in seconds to certify transactions
+        # TYPE certification_latency_squared_s counter
+        certification_latency_squared_s{status="certified"} 40.566800804615106
+        # HELP finality_latency_s Total time in seconds to to achieve finality
+        # TYPE finality_latency_s histogram
+        finality_latency_s_bucket{status="finalized",le="0.1"} 0
+        finality_latency_s_bucket{status="finalized",le="0.25"} 9350
+        finality_latency_s_bucket{status="finalized",le="0.5"} 9350
+        finality_latency_s_bucket{status="finalized",le="0.75"} 9350
+        finality_latency_s_bucket{status="finalized",le="1"} 9350
+        finality_latency_s_bucket{status="finalized",le="1.25"} 9350
+        finality_latency_s_bucket{status="finalized",le="1.5"} 9350
+        finality_latency_s_bucket{status="finalized",le="1.75"} 9350
+        finality_latency_s_bucket{status="finalized",le="2"} 9350
+        finality_latency_s_bucket{status="finalized",le="2.5"} 9350
+        finality_latency_s_bucket{status="finalized",le="5"} 9350
+        finality_latency_s_bucket{status="finalized",le="10"} 9350
+        finality_latency_s_bucket{status="finalized",le="+Inf"} 9350
+        finality_latency_s_sum{status="finalized"} 1196.7344327310034
+        finality_latency_s_count{status="finalized"} 9350
+        # HELP finality_latency_squared_s Square of total time in seconds to achieve finality
+        # TYPE finality_latency_squared_s counter
+        finality_latency_squared_s{status="finalized"} 153.22493505191605
+        # HELP submitted Number of submitted transactions
+        # TYPE submitted counter
+        submitted 9355
+        "#;
+
+        let measurement = Measurement::from_prometheus::<TestProtocolMetrics>(report);
+        let settings = Settings::new_for_test();
+        let mut aggregator = MeasurementsCollection::<TestBenchmarkType>::new(
+            &settings,
+            BenchmarkParameters::default(),
+        );
+        let scraper_id = 1;
+        aggregator.add(scraper_id, measurement);
+
+        assert_eq!(aggregator.scrapers.len(), 1);
+        let data_points = aggregator.scrapers.get(&scraper_id).unwrap();
+        assert_eq!(data_points.len(), 1);
+
+        let data = &data_points[0];
+        assert_eq!(
+            data.buckets,
+            ([
+                ("0.1".into(), 0),
+                ("0.25".into(), 0),
+                ("0.5".into(), 506),
+                ("0.75".into(), 1282),
+                ("1".into(), 1693),
+                ("1.25".into(), 1816),
+                ("1.5".into(), 1860),
+                ("1.75".into(), 1860),
+                ("2".into(), 1860),
+                ("2.5".into(), 1860),
+                ("5".into(), 1860),
+                ("10".into(), 1860),
+                ("20".into(), 1860),
+                ("30".into(), 1860),
+                ("60".into(), 1860),
+                ("90".into(), 1860),
+                ("inf".into(), 1860)
+            ])
+            .iter()
+            .cloned()
+            .collect()
+        );
+        assert_eq!(data.sum.as_secs(), 1265);
+        assert_eq!(data.count, 1860);
+        assert_eq!(data.timestamp.as_secs(), 30);
+        assert_eq!(data.squared_sum.as_secs(), 952);
+    }
 }

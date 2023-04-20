@@ -216,10 +216,10 @@ impl ProtocolMetrics for ArkeProtocol {
     const CLIENT_METRICS_PORT: u16 = 8180;
 
     const BENCHMARK_DURATION: &'static str = "benchmark_duration";
-    const TOTAL_TRANSACTIONS: &'static str = "finalized_latency_s_count";
-    const LATENCY_BUCKETS: &'static str = "finalized_latency_s";
-    const LATENCY_SUM: &'static str = "finalized_latency_s_sum";
-    const LATENCY_SQUARED_SUM: &'static str = "finalized_latency_squared_s";
+    const TOTAL_TRANSACTIONS: &'static str = "finality_latency_s_count";
+    const LATENCY_BUCKETS: &'static str = "finality_latency_s";
+    const LATENCY_SUM: &'static str = "finality_latency_s_sum";
+    const LATENCY_SQUARED_SUM: &'static str = "finality_latency_squared_s";
 }
 
 impl ArkeProtocol {

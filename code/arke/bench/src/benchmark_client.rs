@@ -248,7 +248,8 @@ impl BenchmarkClient {
                 _ = interval.tick() => {
                     let now = Instant::now();
                     let duration = now.duration_since(start);
-                    self.metrics.benchmark_duration.inc_by(duration.as_secs());
+                    let previous = self.metrics.benchmark_duration.get();
+                    self.metrics.benchmark_duration.inc_by(duration.as_secs() - previous);
 
                     for i in 1..=burst {
                         let x = i as usize % Self::TX_GENERATORS;
@@ -290,12 +291,12 @@ impl BenchmarkClient {
                         let square_latency_ms = latency.powf(2.0);
                         self
                             .metrics
-                            .certification_latency_s
+                            .finality_latency_s
                             .with_label_values(&["certified"])
                             .observe(latency);
                         self
                             .metrics
-                            .certification_latency_squared_s
+                            .finality_latency_squared_s
                             .with_label_values(&["certified"])
                             .inc_by(square_latency_ms);
                         tracing::info!("Assembled certificate {id}");
