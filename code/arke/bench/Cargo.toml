@@ -27,13 +27,9 @@ messages = { path = "../messages" }
 network = { path = "../network" }
 arke_core = { path = "../crypto/arke_core" }
 
-[features]
-benchmark = []
-
 [[bin]]         
 name = "benchmark_client"   
 path = "src/benchmark_client.rs" 
-required-features = ["benchmark"]
 
 [[bin]]         
 name = "micro_benchmarks"   

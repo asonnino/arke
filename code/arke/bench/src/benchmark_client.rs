@@ -147,7 +147,7 @@ impl BenchmarkClient {
     ) -> Self {
         let registry = default_registry();
         let _handle = start_prometheus_server(
-            format!("0.0.0.1:{}", metrics_port).parse().unwrap(),
+            format!("0.0.0.0:{}", metrics_port).parse().unwrap(),
             &registry,
         );
         let metrics = ClientMetrics::new(&registry);
@@ -210,7 +210,8 @@ impl BenchmarkClient {
 
         // Initiate the generator of dumb messages.
         let correct_authorities = self.num_of_correct_authorities();
-        let mut tx_generator = WriteTransactionGenerator::new(self.size);
+        let pre_compute = 300 * self.rate as usize / self.committee.shards();
+        let mut tx_generator = WriteTransactionGenerator::new(self.size, pre_compute);
         let mut cert_aggregator =
             CertificateAggregator::new(self.committee.clone(), correct_authorities);
         let mut acks_aggregator = AckAggregator::new(self.committee.clone(), correct_authorities);

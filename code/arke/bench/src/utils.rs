@@ -6,7 +6,7 @@ use messages::{Certificate, ClientToAuthorityMessage, Digest, Vote, WriteTransac
 use rand::{rngs::StdRng, SeedableRng};
 use tokio::{
     sync::{
-        mpsc::{channel, Receiver},
+        mpsc::{channel, Receiver, Sender},
         Notify,
     },
     task::JoinHandle,
@@ -18,26 +18,25 @@ pub const BENCHMARK_EPOCH: u64 = 1;
 /// Make dumb (but valid) write transactions.
 pub struct WriteTransactionGenerator {
     notify: Arc<Notify>,
+    _tx_transaction: Sender<(Digest, Bytes)>,
     rx_transaction: Receiver<(Digest, Bytes)>,
     _handler: JoinHandle<()>,
 }
 
 impl WriteTransactionGenerator {
-    const CHANNEL_CAPACITY: usize = 100_000;
-
-    pub fn new(size: usize) -> Self {
-        let (tx_transaction, rx_transaction) = channel(Self::CHANNEL_CAPACITY);
+    pub fn new(size: usize, pre_generation: usize) -> Self {
+        let (tx_transaction, rx_transaction) = channel(pre_generation * 10);
         let notify = Arc::new(Notify::new());
         let cloned_notify = notify.clone();
 
         // Generate new transactions in the background.
+        let sender = tx_transaction.clone();
         let handler = tokio::spawn(async move {
             let mut csprng = StdRng::from_entropy();
-            let threshold = (10 * Self::CHANNEL_CAPACITY) / 100;
 
             let mut i = 0;
             loop {
-                if i % threshold == 0 {
+                if i % pre_generation == 0 {
                     tracing::debug!("Generated {i} tx");
                 }
 
@@ -52,23 +51,20 @@ impl WriteTransactionGenerator {
                 let serialized = bincode::serialize(&message).unwrap();
                 let bytes = Bytes::from(serialized);
 
-                if tx_transaction.capacity() == threshold {
+                i += 1;
+                if i == pre_generation {
                     cloned_notify.notify_one();
                 }
 
                 // This call blocks when the channel is full.
-                tx_transaction
-                    .send((id, bytes))
-                    .await
-                    .expect("Failed to send tx");
-
-                i += 1;
+                sender.send((id, bytes)).await.expect("Failed to send tx");
                 tokio::task::yield_now().await;
             }
         });
 
         Self {
             notify,
+            _tx_transaction: tx_transaction,
             rx_transaction,
             _handler: handler,
         }
@@ -163,6 +159,20 @@ impl AckAggregator {
             true
         } else {
             false
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::WriteTransactionGenerator;
+
+    #[tokio::test]
+    async fn pre_generate_transactions() {
+        let mut generator = WriteTransactionGenerator::new(32, 10);
+        generator.initialize().await;
+        for _ in 0..10 {
+            let _ = generator.make_tx().await;
         }
     }
 }
