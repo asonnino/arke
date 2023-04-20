@@ -8,7 +8,9 @@ use std::net::SocketAddr;
 use tokio::task::JoinHandle;
 
 const METRICS_ROUTE: &str = "/metrics";
-const LATENCY_SEC_BUCKETS: &[f64] = &[0.1, 0.25, 0.5, 0.75, 1., 1.25, 1.5, 1.75, 2., 2.5, 5., 10.];
+const LATENCY_SEC_BUCKETS: &[f64] = &[
+    0.1, 0.15, 0.20, 0.25, 0.5, 0.75, 1., 1.25, 1.5, 1.75, 2., 2.5, 5., 10.,
+];
 
 #[derive(Clone)]
 pub struct ClientMetrics {

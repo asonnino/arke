@@ -215,7 +215,7 @@ impl BenchmarkClient {
 
         // Initiate the generator of dumb messages.
         let correct_authorities = self.num_of_correct_authorities();
-        let pre_compute = 300 * self.rate as usize / self.committee.shards();
+        let pre_compute = 300 * self.rate as usize / self.committee.shards() / Self::TX_GENERATORS;
         let mut tx_generators: Vec<_> = (0..Self::TX_GENERATORS)
             .map(|_| WriteTransactionGenerator::new(self.size, pre_compute))
             .collect();
