@@ -40,7 +40,7 @@ impl WriteTransactionGenerator {
                     tracing::debug!("Generated {i} tx");
                 }
 
-                let version = 0;
+                let version = 1;
                 let epoch = BENCHMARK_EPOCH;
                 let tx =
                     WriteTransaction::rand::<StdRng>(Some(version), Some(epoch), size, &mut csprng)

@@ -198,7 +198,7 @@ impl ProtocolCommands<ArkeBenchmarkType> for ArkeProtocol {
 
         (0..shards).zip(clients.into_iter()).map(|(i, client)|{
             let run = [
-                "cargo run --release --features benchmark --bin benchmark_client --",
+                "cargo run --release --bin benchmark_client --",
                 "-vvv",
                 &format!("--target-shard {i} --committee {c} --rate {r} --size {s} --faults {f} --metrics-port {p}")
             ]
