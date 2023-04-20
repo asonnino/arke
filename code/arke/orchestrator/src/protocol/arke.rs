@@ -196,7 +196,7 @@ impl ProtocolCommands<ArkeBenchmarkType> for ArkeProtocol {
         let f = parameters.faults.number_of_faults();
         let p = Self::CLIENT_METRICS_PORT;
 
-        (0..shards).zip(clients.into_iter()).map(|(i, client)|{
+        (0..shards).cycle().zip(clients.into_iter()).map(|(i, client)|{
             let run = [
                 "cargo run --release --bin benchmark_client --",
                 "-vvv",
