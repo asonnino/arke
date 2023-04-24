@@ -202,16 +202,20 @@ impl<T: BenchmarkType> BenchmarkParametersGenerator<T> {
         last_result: &MeasurementsCollection<T>,
         new_result: &MeasurementsCollection<T>,
     ) -> bool {
-        // We consider the system is out of capacity if the latency increased by over 5x with
-        // respect to the latest run.
-        let threshold = last_result.aggregate_average_latency() * 5;
-        let high_latency = new_result.aggregate_average_latency() > threshold;
+        let mut out_of_capacity = false;
+        for label in last_result.labels() {
+            // We consider the system is out of capacity if the latency increased by over 5x with
+            // respect to the latest run.
+            let threshold = last_result.aggregate_average_latency(label) * 5;
+            let high_latency = new_result.aggregate_average_latency(label) > threshold;
 
-        // Or if the throughput is less than 2/3 of the input rate.
-        let last_load = new_result.transaction_load() as u64;
-        let no_throughput_increase = new_result.aggregate_tps() < (2 * last_load / 3);
+            // Or if the throughput is less than 2/3 of the input rate.
+            let last_load = new_result.transaction_load() as u64;
+            let no_throughput_increase = new_result.aggregate_tps(label) < (2 * last_load / 3);
 
-        high_latency || no_throughput_increase
+            out_of_capacity |= high_latency || no_throughput_increase
+        }
+        out_of_capacity
     }
 
     /// Register a new benchmark measurements collection. These results are used to determine

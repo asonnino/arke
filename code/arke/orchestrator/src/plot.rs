@@ -80,12 +80,13 @@ struct PlotDataPoint {
 }
 
 impl<T: BenchmarkType> From<&MeasurementsCollection<T>> for PlotDataPoint {
-    fn from(collection: &MeasurementsCollection<T>) -> Self {
-        Self {
-            x: collection.aggregate_tps() as f32,
-            y: collection.aggregate_average_latency().as_secs_f64() as f32,
-            stdev: collection.aggregate_stdev_latency().as_secs_f64() as f32,
-        }
+    fn from(_collection: &MeasurementsCollection<T>) -> Self {
+        todo!("Labels make it hard to convert the collection into a plot point")
+        // Self {
+        //     x: collection.aggregate_tps() as f32,
+        //     y: collection.aggregate_average_latency().as_secs_f64() as f32,
+        //     stdev: collection.aggregate_stdev_latency().as_secs_f64() as f32,
+        // }
     }
 }
 

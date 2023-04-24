@@ -16,10 +16,8 @@ const LATENCY_SEC_BUCKETS: &[f64] = &[
 pub struct ClientMetrics {
     pub benchmark_duration: IntCounter,
     pub submitted: IntCounter,
-    pub finality_latency_s: HistogramVec,
-    pub finality_latency_squared_s: CounterVec,
-    pub certification_latency_s: HistogramVec,
-    pub certification_latency_squared_s: CounterVec,
+    pub latency_s: HistogramVec,
+    pub latency_squared_s: CounterVec,
     pub errors: CounterVec,
 }
 
@@ -38,7 +36,7 @@ impl ClientMetrics {
                 registry,
             )
             .unwrap(),
-            finality_latency_s: register_histogram_vec_with_registry!(
+            latency_s: register_histogram_vec_with_registry!(
                 "finality_latency_s",
                 "Total time in seconds to to achieve finality",
                 &["status"],
@@ -46,24 +44,9 @@ impl ClientMetrics {
                 registry,
             )
             .unwrap(),
-            finality_latency_squared_s: register_counter_vec_with_registry!(
+            latency_squared_s: register_counter_vec_with_registry!(
                 "finality_latency_squared_s",
                 "Square of total time in seconds to achieve finality",
-                &["status"],
-                registry,
-            )
-            .unwrap(),
-            certification_latency_s: register_histogram_vec_with_registry!(
-                "certification_latency_s",
-                "Total time in seconds to certify transactions",
-                &["status"],
-                LATENCY_SEC_BUCKETS.to_vec(),
-                registry,
-            )
-            .unwrap(),
-            certification_latency_squared_s: register_counter_vec_with_registry!(
-                "certification_latency_squared_s",
-                "Square of total time in seconds to certify transactions",
                 &["status"],
                 registry,
             )

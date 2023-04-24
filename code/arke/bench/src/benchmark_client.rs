@@ -291,12 +291,12 @@ impl BenchmarkClient {
                         let square_latency_ms = latency.powf(2.0);
                         self
                             .metrics
-                            .finality_latency_s
+                            .latency_s
                             .with_label_values(&["certified"])
                             .observe(latency);
                         self
                             .metrics
-                            .finality_latency_squared_s
+                            .latency_squared_s
                             .with_label_values(&["certified"])
                             .inc_by(square_latency_ms);
                         tracing::info!("Assembled certificate {id}");
@@ -323,12 +323,12 @@ impl BenchmarkClient {
                         let square_latency_ms = latency.powf(2.0);
                         self
                             .metrics
-                            .finality_latency_s
+                            .latency_s
                             .with_label_values(&["finalized"])
                             .observe(latency);
                         self
                             .metrics
-                            .finality_latency_squared_s
+                            .latency_squared_s
                             .with_label_values(&["finalized"])
                             .inc_by(square_latency_ms);
                         tracing::info!("Acknowledged certificate {id}");
