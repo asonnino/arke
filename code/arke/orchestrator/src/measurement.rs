@@ -298,11 +298,12 @@ impl<T: BenchmarkType> MeasurementsCollection<T> {
         table.add_row(row![b->"Faults:", self.parameters.faults]);
         table.add_row(row![b->"Load:", format!("{} tx/s", self.parameters.load)]);
         table.add_row(row![b->"Duration:", format!("{} s", duration.as_secs())]);
-        table.add_row(row![bH2->""]);
         for label in self.labels() {
             let total_tps = self.aggregate_tps(label);
             let average_latency = self.aggregate_average_latency(label);
             let stdev_latency = self.aggregate_stdev_latency(label);
+
+            table.add_row(row![bH2->""]);
             table.add_row(row![b->format!("+ {label}")]);
             table.add_row(row![b->"TPS:", format!("{total_tps} tx/s")]);
             table.add_row(row![b->"Latency (avg):", format!("{} ms", average_latency.as_millis())]);

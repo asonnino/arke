@@ -16,7 +16,7 @@ from itertools import cycle
 # the following dependencies: `pip install matplotlib`.
 
 
-def aggregate_tps(measurement, i=-1):
+def aggregate_tps(measurement, metric='finalized', i=-1):
     max_duration = 0
     for data in measurement['scrapers'].values():
         duration = float(data[i]['timestamp']['secs'])
@@ -24,32 +24,35 @@ def aggregate_tps(measurement, i=-1):
 
     tps = []
     for data in measurement['scrapers'].values():
-        count = float(data[i]['count'])
+        count = float(data[i]['metrics'][metric]['count'])
         tps += [(count / max_duration) if max_duration != 0 else 0]
     return sum(tps)
 
 
-def aggregate_average_latency(measurement, i=-1):
+def aggregate_average_latency(measurement, metric='finalized', i=-1):
     latency = []
     for data in measurement['scrapers'].values():
-        last = data[i]
+        last = data[i]['metrics'][metric]
         count = float(last['count'])
         total = float(last['sum']['secs'])
         latency += [total / count if count != 0 else 0]
     return sum(latency) / len(latency) if latency else 0
 
 
-def aggregate_stdev_latency(measurement, i=-1):
+def aggregate_stdev_latency(measurement, metric='finalized', i=-1):
     stdev = []
     for data in measurement['scrapers'].values():
-        last = data[i]
+        last = data[i]['metrics'][metric]
         count = float(last['count'])
         if count == 0:
             stdev += [0]
         else:
             first_term = float(last['squared_sum']['secs']) / count
             second_term = (float(last['sum']['secs']) / count)**2
-            stdev += [math.sqrt(first_term - second_term)]
+            if first_term - second_term < 0:
+                stdev += [0]
+            else:
+                stdev += [math.sqrt(first_term - second_term)]
     return max(stdev)
 
 
@@ -98,17 +101,17 @@ def sec_major_formatter(x, pos):
 
 
 class PlotParameters:
-    def __init__(self, shared_objects_ratio, nodes, faults, specs=None, commit=None):
+    def __init__(self, bench_type, nodes, faults, specs=None, commit=None):
         self.nodes = nodes
         self.faults = faults
-        self.shared_objects_ratio = shared_objects_ratio
+        self.bench_type = bench_type
         self.specs = specs
         self.commit = commit
 
 
 class MeasurementId:
-    def __init__(self, measurement, max_latency=None):
-        self.shared_objects_ratio = measurement['parameters']['benchmark_type']['shared_objects_ratio']
+    def __init__(self, measurement, bench_type, max_latency=None):
+        self.bench_type = bench_type
         self.nodes = measurement['parameters']['nodes']
         if 'Permanent' in measurement['parameters']['faults']:
             self.faults = measurement['parameters']['faults']['Permanent']['faults']
@@ -139,11 +142,11 @@ class Plotter:
         if plot_type in [PlotType.L_GRAPH, PlotType.HEALTH]:
             f = '' if id.faults == 0 else f' ({id.faults} faulty)'
             l = f'{id.nodes} nodes{f}'
-            return f'{l} - {id.shared_objects_ratio}% shared objects'
+            return f'{l} - {id.bench_type}'
         elif plot_type == PlotType.SCALABILITY:
             f = '' if id.faults == 0 else f' ({id.faults} faulty)'
             l = f'{id.max_latency}s latency cap{f}'
-            return f'{l} - {id.shared_objects_ratio}% shared objects'
+            return f'{l} - {id.bench_type}'
         else:
             return None
 
@@ -161,7 +164,7 @@ class Plotter:
         else:
             assert False
 
-    def _plot(self, data, plot_type):
+    def _plot(self, data, plot_type, bench_type):
         plt.figure(figsize=(6.4, 2.4))
         markers = cycle(['o', 'v', 's', 'p', 'D', 'P'])
 
@@ -174,13 +177,13 @@ class Plotter:
 
         if plot_type == PlotType.L_GRAPH:
             legend_anchor, legend_location = (0, 1), 'upper left'
-            plot_name = f'latency-{self.parameters.shared_objects_ratio}'
+            plot_name = f'latency-{bench_type}'
         elif plot_type == PlotType.HEALTH:
             legend_anchor, legend_location = (0, 1), 'upper left'
-            plot_name = f'health-{self.parameters.shared_objects_ratio}'
+            plot_name = f'health-{bench_type}'
         elif plot_type == PlotType.SCALABILITY:
             legend_anchor, legend_location = (0, 0), 'lower left'
-            plot_name = f'scalability-{self.parameters.shared_objects_ratio}'
+            plot_name = f'scalability-{bench_type}'
         elif plot_type == PlotType.INSPECT_TPS:
             plot_name = f'inspect-tps-{id}'
         elif plot_type == PlotType.INSPECT_LATENCY:
@@ -239,15 +242,15 @@ class Plotter:
 
         return measurements
 
-    def _file_format(self, shared_objects_ratio, faults, nodes, load):
-        return f'measurements-{shared_objects_ratio}-{faults}-{nodes}-{load}.json'
+    def _file_format(self, bench_type, faults, nodes, load):
+        return f'measurements-{bench_type}-{faults}-{nodes}-{load}.json'
 
     def plot_latency_throughput(self):
         plot_lines_data = []
-        shared_objects_ratio = self.parameters.shared_objects_ratio
+        bench_type = self.parameters.bench_type
         for n in self.parameters.nodes:
             for f in self.parameters.faults:
-                filename = self._file_format(shared_objects_ratio, f, n, '*')
+                filename = self._file_format(bench_type, f, n, '*')
                 plot_lines_data += [self._load_measurement_data(filename)]
 
         plot_data = []
@@ -264,17 +267,17 @@ class Plotter:
                     e_values += [aggregate_stdev_latency(measurement)]
 
             if x_values:
-                id = MeasurementId(measurements[0])
+                id = MeasurementId(measurements[0], bench_type)
                 plot_data += [(id, x_values, y_values, e_values)]
 
-        self._plot(plot_data, PlotType.L_GRAPH)
+        self._plot(plot_data, PlotType.L_GRAPH, bench_type)
 
     def plot_health(self):
         plot_lines_data = []
-        shared_objects_ratio = self.parameters.shared_objects_ratio
+        bench_type = self.parameters.bench_type
         for n in self.parameters.nodes:
             for f in self.parameters.faults:
-                filename = self._file_format(shared_objects_ratio, f, n, '*')
+                filename = self._file_format(bench_type, f, n, '*')
                 plot_lines_data += [self._load_measurement_data(filename)]
 
         plot_data = []
@@ -287,20 +290,20 @@ class Plotter:
                 e_values += [0]
 
             if x_values:
-                id = MeasurementId(measurements[0])
+                id = MeasurementId(measurements[0], bench_type)
                 plot_data += [(id, x_values, y_values, e_values)]
 
-        self._plot(plot_data, PlotType.HEALTH)
+        self._plot(plot_data, PlotType.HEALTH, bench_type)
 
     def plot_scalability(self, max_latencies):
         plot_lines_data = []
-        shared_objects_ratio = self.parameters.shared_objects_ratio
+        bench_type = self.parameters.bench_type
         for f in self.parameters.faults:
             for l in max_latencies:
                 filenames = []
                 for n in self.parameters.nodes:
                     filename = self._file_format(
-                        shared_objects_ratio, f, n, '*'
+                        bench_type, f, n, '*'
                     )
                     measurements = self._load_measurement_data(filename)
                     measurements = [
@@ -324,9 +327,12 @@ class Plotter:
                 id = MeasurementId(measurements[0], max_latency)
                 plot_data += [(id, x_values, y_values, e_values)]
 
-        self._plot(plot_data, PlotType.SCALABILITY)
+        self._plot(plot_data, PlotType.SCALABILITY, bench_type)
 
-    def plot_inspect(self, file):
+    def plot_inspect(self, file, metric='finalized'):
+        basename = os.path.basename(file)
+        id = '-'.join(basename.split('-')[1:]).split('.')[0]
+
         with open(file, 'r') as f:
             try:
                 measurement = json.loads(f.read())
@@ -337,9 +343,11 @@ class Plotter:
         for data in measurement['scrapers'].values():
             x_values, y_tps_values, y_lat_values, e_values = [], [], [], []
             for d in data:
-                count = float(d['count'])
                 duration = float(d['timestamp']['secs'])
-                total = float(d['sum']['secs'])
+
+                value = d['metrics'][metric]
+                count = float(value['count'])
+                total = float(value['sum']['secs'])
 
                 tps = (count / duration) if duration != 0 else 0
                 avg_latency = total / count if count != 0 else 0
@@ -350,15 +358,13 @@ class Plotter:
                 e_values += [0]
 
             if x_values:
-                basename = os.path.basename(file)
-                id = '-'.join(basename.split('-')[1:]).split('.')[0]
                 plot_tps_data += [(id, x_values, y_tps_values, e_values)]
                 plot_lat_data += [(id, x_values, y_lat_values, e_values)]
 
-        self._plot(plot_tps_data, PlotType.INSPECT_TPS)
-        self._plot(plot_lat_data, PlotType.INSPECT_LATENCY)
+        self._plot(plot_tps_data, PlotType.INSPECT_TPS, id)
+        self._plot(plot_lat_data, PlotType.INSPECT_LATENCY, id)
 
-    def plot_duration(self, file, precision):
+    def plot_duration(self, file, precision, metric='finalized'):
         with open(file, 'r') as f:
             try:
                 measurement = json.loads(f.read())
@@ -374,9 +380,11 @@ class Plotter:
             all_y_lat_values = [[] for _ in range(length)]
 
             for d in data:
-                count = float(d['count'])
                 duration = float(d['timestamp']['secs'])
-                total = float(d['sum']['secs'])
+
+                value = d['metrics'][metric]
+                count = float(value['count'])
+                total = float(value['sum']['secs'])
 
                 tps = (count / duration) if duration != 0 else 0
                 avg_latency = total / count if count != 0 else 0
@@ -412,8 +420,8 @@ class Plotter:
 
         plot_tps_data = [(id, x_values, y_tps_values, e_values)]
         plot_lat_data = [(id, x_values, y_lat_values, e_values)]
-        self._plot(plot_tps_data, PlotType.DURATION_TPS)
-        self._plot(plot_lat_data, PlotType.DURATION_LATENCY)
+        self._plot(plot_tps_data, PlotType.DURATION_TPS, id)
+        self._plot(plot_lat_data, PlotType.DURATION_LATENCY, id)
 
 
 if __name__ == "__main__":
@@ -425,7 +433,7 @@ if __name__ == "__main__":
         '--dir', default='./', help='Data directory'
     )
     parser.add_argument(
-        '--shared-objects-ratio', nargs='+', type=int, default=[0, 100],
+        '--bench-type', nargs='+', type=int, default=['c-1-32', 's-1-32'],
         help='The ratio of shared objects to plot (in separate graphs)'
     )
     parser.add_argument(
@@ -455,8 +463,10 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    for r in args.shared_objects_ratio:
-        parameters = PlotParameters(r, args.committee, args.faults)
+    for r in args.bench_type:
+        parameters = PlotParameters(
+            r, args.committee, args.faults
+        )
         plotter = Plotter(
             args.dir, parameters, args.y_max, args.legend_columns, median=False
         )
