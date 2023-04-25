@@ -110,8 +110,10 @@ class PlotParameters:
 
 
 class MeasurementId:
-    def __init__(self, measurement, bench_type, max_latency=None):
+    def __init__(self, measurement, bench_type, metric, max_latency=None):
+        self.measurement = measurement
         self.bench_type = bench_type
+        self.metric = metric
         self.nodes = measurement['parameters']['nodes']
         if 'Permanent' in measurement['parameters']['faults']:
             self.faults = measurement['parameters']['faults']['Permanent']['faults']
@@ -131,6 +133,15 @@ class Plotter:
         self.legend_columns = legend_columns
         self.median = median
 
+        self.colors = cycle(
+            [
+                'tab:green', 'tab:green',
+                'tab:blue', 'tab:blue',
+                'tab:orange', 'tab:orange',
+                'tab:red', 'tab:red'
+            ]
+        )
+
     def _make_plot_directory(self):
         plot_directory = os.path.join(self.data_directory, 'plots')
         if not os.path.exists(plot_directory):
@@ -142,7 +153,12 @@ class Plotter:
         if plot_type in [PlotType.L_GRAPH, PlotType.HEALTH]:
             f = '' if id.faults == 0 else f' ({id.faults} faulty)'
             l = f'{id.nodes} nodes{f}'
-            return f'{l} - {id.bench_type}'
+            if id.metric == 'certified':
+                return f'{l} - write'
+            elif id.metric == 'finalized':
+                return f'{l} - write & sync'
+            else:
+                return l
         elif plot_type == PlotType.SCALABILITY:
             f = '' if id.faults == 0 else f' ({id.faults} faulty)'
             l = f'{id.max_latency}s latency cap{f}'
@@ -166,12 +182,13 @@ class Plotter:
 
     def _plot(self, data, plot_type, bench_type):
         plt.figure(figsize=(6.4, 2.4))
-        markers = cycle(['o', 'v', 's', 'p', 'D', 'P'])
+        # markers = cycle(['o', 'v', 's', 'p', 'D', 'P'])
+        markers = cycle(['o', 'v'])
 
         for id, x_values, y_values, e_values in data:
             plt.errorbar(
                 x_values, y_values, yerr=e_values,
-                label=self._legend_entry(plot_type, id),
+                label=self._legend_entry(plot_type, id), color=next(self.colors),
                 linestyle='dotted', marker=next(markers), capsize=3
             )
 
@@ -245,7 +262,7 @@ class Plotter:
     def _file_format(self, bench_type, faults, nodes, load):
         return f'measurements-{bench_type}-{faults}-{nodes}-{load}.json'
 
-    def plot_latency_throughput(self):
+    def plot_latency_throughput(self, metrics):
         plot_lines_data = []
         bench_type = self.parameters.bench_type
         for n in self.parameters.nodes:
@@ -255,24 +272,33 @@ class Plotter:
 
         plot_data = []
         for measurements in plot_lines_data:
-            x_values, y_values, e_values = [], [], []
-            measurements.sort(key=lambda x: x['parameters']['load'])
-            for measurement in measurements:
-                x_values += [aggregate_tps(measurement)]
-                if self.median:
-                    y_values += [aggregate_p_latency(measurement, p=50)]
-                    e_values += [aggregate_p_latency(measurement, p=75)]
-                else:
-                    y_values += [aggregate_average_latency(measurement)]
-                    e_values += [aggregate_stdev_latency(measurement)]
+            for m in metrics:
+                x_values, y_values, e_values = [], [], []
+                measurements.sort(key=lambda x: x['parameters']['load'])
+                for measurement in measurements:
+                    x_values += [aggregate_tps(measurement, metric=m)]
+                    if self.median:
+                        y_values += [
+                            aggregate_p_latency(measurement, p=50, metric=m)
+                        ]
+                        e_values += [
+                            aggregate_p_latency(measurement, p=75, metric=m)
+                        ]
+                    else:
+                        y_values += [
+                            aggregate_average_latency(measurement, metric=m)
+                        ]
+                        e_values += [
+                            aggregate_stdev_latency(measurement, metric=m)
+                        ]
 
-            if x_values:
-                id = MeasurementId(measurements[0], bench_type)
-                plot_data += [(id, x_values, y_values, e_values)]
+                if x_values:
+                    id = MeasurementId(measurements[0], bench_type, m)
+                    plot_data += [(id, x_values, y_values, e_values)]
 
         self._plot(plot_data, PlotType.L_GRAPH, bench_type)
 
-    def plot_health(self):
+    def plot_health(self, metrics):
         plot_lines_data = []
         bench_type = self.parameters.bench_type
         for n in self.parameters.nodes:
@@ -282,16 +308,17 @@ class Plotter:
 
         plot_data = []
         for measurements in plot_lines_data:
-            x_values, y_values, e_values = [], [], []
-            measurements.sort(key=lambda x: x['parameters']['load'])
-            for measurement in measurements:
-                x_values += [measurement['parameters']['load']]
-                y_values += [aggregate_tps(measurement)]
-                e_values += [0]
+            for m in metrics:
+                x_values, y_values, e_values = [], [], []
+                measurements.sort(key=lambda x: x['parameters']['load'])
+                for measurement in measurements:
+                    x_values += [measurement['parameters']['load']]
+                    y_values += [aggregate_tps(measurement, metric=m)]
+                    e_values += [0]
 
-            if x_values:
-                id = MeasurementId(measurements[0], bench_type)
-                plot_data += [(id, x_values, y_values, e_values)]
+                if x_values:
+                    id = MeasurementId(measurements[0], bench_type, m)
+                    plot_data += [(id, x_values, y_values, e_values)]
 
         self._plot(plot_data, PlotType.HEALTH, bench_type)
 
@@ -324,7 +351,8 @@ class Plotter:
                 e_values += [0]
 
             if x_values:
-                id = MeasurementId(measurements[0], max_latency)
+                m = 'finalized'
+                id = MeasurementId(measurements[0], bench_type, m, max_latency)
                 plot_data += [(id, x_values, y_values, e_values)]
 
         self._plot(plot_data, PlotType.SCALABILITY, bench_type)
@@ -345,6 +373,8 @@ class Plotter:
             for d in data:
                 duration = float(d['timestamp']['secs'])
 
+                if not metric in d['metrics']:
+                    continue
                 value = d['metrics'][metric]
                 count = float(value['count'])
                 total = float(value['sum']['secs'])
@@ -382,6 +412,8 @@ class Plotter:
             for d in data:
                 duration = float(d['timestamp']['secs'])
 
+                if not metric in d['metrics']:
+                    continue
                 value = d['metrics'][metric]
                 count = float(value['count'])
                 total = float(value['sum']['secs'])
@@ -463,6 +495,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    metrics = ['certified', 'finalized']
     for r in args.bench_type:
         parameters = PlotParameters(
             r, args.committee, args.faults
@@ -470,8 +503,8 @@ if __name__ == "__main__":
         plotter = Plotter(
             args.dir, parameters, args.y_max, args.legend_columns, median=False
         )
-        plotter.plot_latency_throughput()
-        plotter.plot_health()
+        plotter.plot_latency_throughput(metrics)
+        plotter.plot_health(metrics)
         plotter.plot_scalability(args.max_latencies)
 
     if args.inspect is not None:

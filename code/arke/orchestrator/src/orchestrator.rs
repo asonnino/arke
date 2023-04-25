@@ -424,7 +424,7 @@ impl<P: ProtocolCommands<T> + ProtocolMetrics, T: BenchmarkType> Orchestrator<P,
                         aggregator.add(i, measurement);
                     }
 
-                    if elapsed > parameters.duration .as_secs() {
+                    if elapsed >= parameters.duration .as_secs() {
                         break;
                     }
                 },
