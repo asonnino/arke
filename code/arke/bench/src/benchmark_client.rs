@@ -279,7 +279,10 @@ impl BenchmarkClient {
                     };
                     let vote = match result {
                         Ok(x) => x,
-                        Err(AuthorityError::InvalidVersion{expected,..}) if expected > 1 => continue,
+                        Err(AuthorityError::InvalidVersion{expected,..}) if expected > 1 => {
+                            tracing::warn!("Rng generated duplicate transaction");
+                            continue
+                        },
                         e => e.context("Authority returned error")?
                     };
                     tracing::debug!("Received {vote:?}");
@@ -315,7 +318,10 @@ impl BenchmarkClient {
                     };
                     let id = match result {
                         Ok(x) => x,
-                        Err(AuthorityError::InvalidVersion{expected,..}) if expected > 1 => continue,
+                        Err(AuthorityError::InvalidVersion{expected,..}) if expected > 1 => {
+                            tracing::warn!("Rng generated duplicate transaction");
+                            continue
+                        },
                         e => e.context("Authority returned error")?
                     };
                     tracing::debug!("Received ack for {id:?}");
