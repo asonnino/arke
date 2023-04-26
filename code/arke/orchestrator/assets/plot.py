@@ -24,6 +24,8 @@ def aggregate_tps(measurement, metric='finalized', i=-1):
 
     tps = []
     for data in measurement['scrapers'].values():
+        if not metric in data[i]['metrics']:
+            continue
         count = float(data[i]['metrics'][metric]['count'])
         tps += [(count / max_duration) if max_duration != 0 else 0]
     return sum(tps)
@@ -32,6 +34,8 @@ def aggregate_tps(measurement, metric='finalized', i=-1):
 def aggregate_average_latency(measurement, metric='finalized', i=-1):
     latency = []
     for data in measurement['scrapers'].values():
+        if not metric in data[i]['metrics']:
+            continue
         last = data[i]['metrics'][metric]
         count = float(last['count'])
         total = float(last['sum']['secs'])
@@ -42,6 +46,8 @@ def aggregate_average_latency(measurement, metric='finalized', i=-1):
 def aggregate_stdev_latency(measurement, metric='finalized', i=-1):
     stdev = []
     for data in measurement['scrapers'].values():
+        if not metric in data[i]['metrics']:
+            continue
         last = data[i]['metrics'][metric]
         count = float(last['count'])
         if count == 0:

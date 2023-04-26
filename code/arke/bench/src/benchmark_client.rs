@@ -313,7 +313,11 @@ impl BenchmarkClient {
                         AuthorityToClientMessage::Acknowledgement(result) => result,
                         x => return Err(eyre!("Unexpected protocol message: {x:?}"))
                     };
-                    let id = result.context("Authority returned error")?;
+                    let id = match result {
+                        Ok(x) => x,
+                        Err(AuthorityError::InvalidVersion{expected,..}) if expected > 1 => continue,
+                        e => e.context("Authority returned error")?
+                    };
                     tracing::debug!("Received ack for {id:?}");
 
                     if acks_aggregator.check_ack_quorum(id) {
