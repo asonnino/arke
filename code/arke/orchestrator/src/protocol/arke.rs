@@ -167,7 +167,7 @@ impl ProtocolCommands<ArkeBenchmarkType> for ArkeProtocol {
                     let db = storage.display();
                     let run = [
                         "cargo run --release --bin authority --",
-                        "-vvv",
+                        "-vv",
                         "run",
                         &format!("--keys {keys} --shard {s} --committee {committee} --storage {db} --epoch {epoch} --metrics-port {port}"),
                     ]
