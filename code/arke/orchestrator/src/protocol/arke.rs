@@ -164,7 +164,7 @@ impl ProtocolCommands<ArkeBenchmarkType> for ArkeProtocol {
                     let port = Self::NODE_METRICS_PORT + s as u16;
                     let run = [
                         "cargo run --release --bin authority --",
-                        "-vvv",
+                        "-vv",
                         "run",
                         &format!("--keys {keys} --shard {s} --committee {committee} --storage {storage} --epoch {epoch} --metrics-port {port}"),
                     ]
@@ -202,7 +202,7 @@ impl ProtocolCommands<ArkeBenchmarkType> for ArkeProtocol {
         (0..shards).cycle().zip(clients.into_iter()).map(|(i, client)|{
             let run = [
                 "cargo run --release --bin benchmark_client --",
-                "-vvv",
+                "-vv",
                 &format!("--target-shard {i} --committee {c} --rate {r} --size {s} --faults {f} --metrics-port {p}")
             ]
             .join(" ");
