@@ -99,7 +99,10 @@ pub struct ArkeProtocol {
 
 impl ProtocolCommands<ArkeBenchmarkType> for ArkeProtocol {
     fn protocol_dependencies(&self) -> Vec<&'static str> {
-        vec!["sudo apt-get -y install clang cmake"]
+        vec![
+            "sudo apt-get -y install clang cmake",
+            " echo 'DefaultLimitNOFILE=15000' | sudo tee  /etc/security/limits.conf",
+        ]
     }
 
     fn db_directories(&self) -> Vec<PathBuf> {
@@ -161,7 +164,7 @@ impl ProtocolCommands<ArkeBenchmarkType> for ArkeProtocol {
                     let port = Self::NODE_METRICS_PORT + s as u16;
                     let run = [
                         "cargo run --release --bin authority --",
-                        "-vv",
+                        "-vvv",
                         "run",
                         &format!("--keys {keys} --shard {s} --committee {committee} --storage {storage} --epoch {epoch} --metrics-port {port}"),
                     ]

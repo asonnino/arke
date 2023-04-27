@@ -59,7 +59,7 @@ def aggregate_stdev_latency(measurement, metric='finalized', i=-1):
                 stdev += [0]
             else:
                 stdev += [math.sqrt(first_term - second_term)]
-    return max(stdev)
+    return max(stdev) if stdev else 0
 
 
 def aggregate_p_latency(measurement, p=50, i=-1):
