@@ -101,7 +101,7 @@ impl ProtocolCommands<ArkeBenchmarkType> for ArkeProtocol {
     fn protocol_dependencies(&self) -> Vec<&'static str> {
         vec![
             "sudo apt-get -y install clang cmake",
-            " echo 'DefaultLimitNOFILE=15000' | sudo tee  /etc/security/limits.conf",
+            "echo 'DefaultLimitNOFILE=15000' | sudo tee  /etc/security/limits.conf",
         ]
     }
 
@@ -152,7 +152,9 @@ impl ProtocolCommands<ArkeBenchmarkType> for ArkeProtocol {
 
         let shards = parameters.benchmark_type.number_of_shards();
         let committee = config::committee_filename();
-        let storage = Self::DB_NAME;
+        let storage = [&self.working_dir, &PathBuf::from(Self::DB_NAME)]
+            .iter()
+            .collect::<PathBuf>();
         let epoch = 1; // TODO: Get the epoch from the benchmark client.
 
         instances
@@ -162,11 +164,12 @@ impl ProtocolCommands<ArkeBenchmarkType> for ArkeProtocol {
                 let keys = config::private_config_filename(i);
                 (0..shards).map(|s|{
                     let port = Self::NODE_METRICS_PORT + s as u16;
+                    let db = storage.display();
                     let run = [
                         "cargo run --release --bin authority --",
-                        "-vv",
+                        "-vvv",
                         "run",
-                        &format!("--keys {keys} --shard {s} --committee {committee} --storage {storage} --epoch {epoch} --metrics-port {port}"),
+                        &format!("--keys {keys} --shard {s} --committee {committee} --storage {db} --epoch {epoch} --metrics-port {port}"),
                     ]
                     .join(" ");
                     let command = ["source $HOME/.cargo/env", &run].join(" && ");
@@ -202,7 +205,7 @@ impl ProtocolCommands<ArkeBenchmarkType> for ArkeProtocol {
         (0..shards).cycle().zip(clients.into_iter()).map(|(i, client)|{
             let run = [
                 "cargo run --release --bin benchmark_client --",
-                "-vv",
+                "-vvv",
                 &format!("--target-shard {i} --committee {c} --rate {r} --size {s} --faults {f} --metrics-port {p}")
             ]
             .join(" ");
