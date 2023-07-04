@@ -1,6 +1,6 @@
 use authority::{state::AuthorityState, storage::Storage};
 use config::{Authority, Committee};
-use fastcrypto::{generate_keypair, traits::KeyPair as _};
+use fastcrypto::traits::KeyPair as _;
 use messages::{Certificate, Epoch, KeyPair, Version, Vote, WriteTransaction};
 use rand::{rngs::StdRng, SeedableRng};
 use tempdir::TempDir;
@@ -11,7 +11,7 @@ pub const INITIAL_EPOCH: Epoch = 1;
 
 pub fn test_keys() -> Vec<KeyPair> {
     let mut csprng = StdRng::seed_from_u64(0);
-    (0..4).map(|_| generate_keypair(&mut csprng)).collect()
+    (0..4).map(|_| KeyPair::generate(&mut csprng)).collect()
 }
 
 pub fn test_write_transaction() -> WriteTransaction {

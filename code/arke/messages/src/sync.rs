@@ -4,7 +4,6 @@ use config::Committee;
 use fastcrypto::{
     hash::Hash,
     traits::{Signer, VerifyingKey},
-    Verifier,
 };
 use serde::{Deserialize, Serialize};
 
@@ -162,7 +161,7 @@ impl Certificate {
         );
 
         // Check the signatures.
-        VerifyingKey::verify_batch_empty_fail(self.id().as_ref(), &names, &votes)?;
+        PublicKey::verify_batch_empty_fail(self.id().as_ref(), &names, &votes)?;
 
         Ok(())
     }

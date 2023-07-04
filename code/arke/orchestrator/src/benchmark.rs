@@ -202,6 +202,10 @@ impl<T: BenchmarkType> BenchmarkParametersGenerator<T> {
         last_result: &MeasurementsCollection<T>,
         new_result: &MeasurementsCollection<T>,
     ) -> bool {
+        if last_result.labels().is_empty() {
+            return true;
+        }
+
         let mut out_of_capacity = false;
         for label in last_result.labels() {
             // We consider the system is out of capacity if the latency increased by over 5x with

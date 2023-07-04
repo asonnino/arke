@@ -7,10 +7,9 @@ use std::{
 
 use fastcrypto::{
     ed25519::{Ed25519KeyPair as KeyPair, Ed25519PublicKey as PublicKey},
-    generate_keypair, generate_production_keypair,
     traits::KeyPair as _,
 };
-use rand::{rngs::StdRng, SeedableRng};
+use rand::{rngs::StdRng, thread_rng, SeedableRng};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use thiserror::Error;
 
@@ -165,7 +164,7 @@ impl Default for PrivateConfig {
 impl PrivateConfig {
     /// Creates a new private configuration.
     pub fn new() -> Self {
-        let keypair = generate_production_keypair::<KeyPair>();
+        let keypair = KeyPair::generate(&mut thread_rng());
         Self {
             name: keypair.public().clone(),
             secret: keypair,
@@ -189,7 +188,7 @@ pub fn print_test_configs(committee_size: usize, shards: usize, mut addresses: V
 
     let mut authorities = BTreeMap::new();
     for i in 0..committee_size {
-        let keypair: KeyPair = generate_keypair(&mut csprng);
+        let keypair = KeyPair::generate(&mut csprng);
         let name = keypair.public().clone();
 
         // Export the private configs.

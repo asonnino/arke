@@ -1,4 +1,5 @@
 use arke_core::ARKEError;
+use fastcrypto::error::FastCryptoError;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -59,6 +60,12 @@ pub enum MessageError {
 
 impl From<signature::Error> for MessageError {
     fn from(error: signature::Error) -> Self {
+        MessageError::InvalidSignature(error.to_string())
+    }
+}
+
+impl From<FastCryptoError> for MessageError {
+    fn from(error: FastCryptoError) -> Self {
         MessageError::InvalidSignature(error.to_string())
     }
 }
